@@ -29,10 +29,21 @@
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  #date{font-weight:700;letter-spacing:0.02em;line-height:1;}
-  #time{font-weight:800;line-height:1;white-space:nowrap;}
+  /* 文字の大きさは画面から自動計算する。
+     左右はノッチ／ダイナミックアイランド（画面の切り欠き）の余白を「大きい方×2」引いた幅に収める。
+     余白の値が回転などで変わっても、ブラウザが自動で計算し直す */
+  :root{
+    --sl:env(safe-area-inset-left,0px);
+    --sr:env(safe-area-inset-right,0px);
+    --st:env(safe-area-inset-top,0px);
+    --sb:env(safe-area-inset-bottom,0px);
+    --tw:4.6; /* 「00:00:00」の幅（文字の大きさ何個分か）。読み込み時に実測して上書き */
+    --size:min(calc((100vw - 2 * max(var(--sl), var(--sr))) * 0.9 / var(--tw)),
+               calc((100vh - var(--st) - var(--sb)) * 0.6));
+  }
+  #date{font-weight:700;letter-spacing:0.02em;line-height:1;font-size:calc(var(--size) * 0.28);margin-bottom:calc(var(--size) * 0.12);}
+  #time{font-weight:800;line-height:1;white-space:nowrap;font-size:var(--size);}
   #hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 8px);left:0;right:0;text-align:center;
     font-size:13px;color:#888;}
 </style>
@@ -61,18 +72,11 @@
     setTimeout(tick, 1000 - (Date.now() % 1000) + 2);
   }
 
-  // 画面の横幅いっぱいに文字を大きくする（縦持ち・横持ちどちらでも）
-  function fit(){
-    // ノッチ（画面上部の切り欠き）などの安全余白を除いた幅に収める
-    var cs = getComputedStyle(document.body);
-    var w = (document.body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) * 0.94;
-    var h = document.body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  // 「00:00:00」の幅を実測して、文字の大きさの計算に使う（大きさそのものは CSS 側で計算）
+  function measure(){
     timeEl.style.fontSize = '100px';
-    var size = 100 * w / timeEl.scrollWidth;
-    size = Math.min(size, h * 0.62);
-    timeEl.style.fontSize = size + 'px';
-    dateEl.style.fontSize = (size * 0.28) + 'px';
-    dateEl.style.marginBottom = (size * 0.12) + 'px';
+    document.documentElement.style.setProperty('--tw', (timeEl.scrollWidth / 100).toFixed(3));
+    timeEl.style.fontSize = '';
   }
 
   // 画面が暗くならないようにする（対応している iPhone のみ）
@@ -94,10 +98,7 @@
   });
 
   draw();
-  fit();
-  window.addEventListener('resize', fit);
-  // 回転した直後は余白の値が遅れて変わるので、少し待ってからもう一度合わせる
-  window.addEventListener('orientationchange', function(){ setTimeout(fit, 300); });
+  measure();
   tick();
   keepAwake();
 
