@@ -15,7 +15,9 @@ iPhone に時分秒を大きく表示し、それを各カメラで撮ってお�
 
 ## 公開先
 
-未公開（2026-09-27 時点）。
+**https://terakoshi.github.io/jikoku/** （2026-09-27〜。置き場: https://github.com/Terakoshi/jikoku ）
+
+直したら `git add -A` → `git commit` → `git push`。`sw.js` の数字も1つ増やす。
 
 ## 使うときのコツ
 
