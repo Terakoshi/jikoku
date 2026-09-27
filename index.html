@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>時刻</title>
+<!-- 検索エンジンに載せない（自分用のため） -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="時刻">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  /* 写真に撮って読み取るための時計。白地に黒の太字（文字読み取りに一番強い組み合わせ） */
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:#fff;
+    color:#000;
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    font-variant-numeric:tabular-nums; /* 数字の幅をそろえて、表示がガタつかないように */
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #date{font-weight:700;letter-spacing:0.02em;line-height:1;}
+  #time{font-weight:800;line-height:1;white-space:nowrap;}
+  #hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 8px);left:0;right:0;text-align:center;
+    font-size:13px;color:#888;}
+</style>
+</head>
+<body>
+<div id="date">0000-00-00</div>
+<div id="time">00:00:00</div>
+<div id="hint"></div>
+<script>
+(function(){
+  var dateEl = document.getElementById('date');
+  var timeEl = document.getElementById('time');
+  var hintEl = document.getElementById('hint');
+
+  function two(n){ return (n < 10 ? '0' : '') + n; }
+
+  function draw(){
+    var d = new Date();
+    dateEl.textContent = d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+    timeEl.textContent = two(d.getHours()) + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds());
+  }
+
+  // 秒の変わり目ぴったりに書き換える（遅れて切り替わらないように）
+  function tick(){
+    draw();
+    setTimeout(tick, 1000 - (Date.now() % 1000) + 2);
+  }
+
+  // 画面の横幅いっぱいに文字を大きくする（縦持ち・横持ちどちらでも）
+  function fit(){
+    var w = window.innerWidth * 0.94;
+    var h = window.innerHeight;
+    timeEl.style.fontSize = '100px';
+    var size = 100 * w / timeEl.scrollWidth;
+    size = Math.min(size, h * 0.62);
+    timeEl.style.fontSize = size + 'px';
+    dateEl.style.fontSize = (size * 0.28) + 'px';
+    dateEl.style.marginBottom = (size * 0.12) + 'px';
+  }
+
+  // 画面が暗くならないようにする（対応している iPhone のみ）
+  var lock = null;
+  function keepAwake(){
+    if(!('wakeLock' in navigator)){ hintEl.textContent = ''; return; }
+    if(lock) return;
+    navigator.wakeLock.request('screen').then(function(l){
+      lock = l;
+      hintEl.textContent = '';
+      l.addEventListener('release', function(){ lock = null; });
+    }).catch(function(){
+      hintEl.textContent = 'タップすると画面が暗くならなくなります';
+    });
+  }
+  document.addEventListener('click', keepAwake);
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible'){ draw(); keepAwake(); }
+  });
+
+  draw();
+  fit();
+  window.addEventListener('resize', fit);
+  tick();
+  keepAwake();
+
+  if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
