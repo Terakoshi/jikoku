@@ -63,8 +63,10 @@
 
   // 画面の横幅いっぱいに文字を大きくする（縦持ち・横持ちどちらでも）
   function fit(){
-    var w = window.innerWidth * 0.94;
-    var h = window.innerHeight;
+    // ノッチ（画面上部の切り欠き）などの安全余白を除いた幅に収める
+    var cs = getComputedStyle(document.body);
+    var w = (document.body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) * 0.94;
+    var h = document.body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     timeEl.style.fontSize = '100px';
     var size = 100 * w / timeEl.scrollWidth;
     size = Math.min(size, h * 0.62);
@@ -94,6 +96,8 @@
   draw();
   fit();
   window.addEventListener('resize', fit);
+  // 回転した直後は余白の値が遅れて変わるので、少し待ってからもう一度合わせる
+  window.addEventListener('orientationchange', function(){ setTimeout(fit, 300); });
   tick();
   keepAwake();
 
